@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo - PC Builder ESEG</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f0f2f5; }
+
+        .navbar-brand { font-weight: 800; }
+
+        .filtros-card {
+            border: none;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+        }
+
+        .comp-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+            transition: transform 0.15s, box-shadow 0.15s;
+            overflow: hidden;
+            height: 100%;
+        }
+        .comp-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.13);
+        }
+
+        .comp-img-wrap {
+            background: #fff;
+            height: 160px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            border-bottom: 1px solid #f0f2f5;
+        }
+        .comp-img-wrap img {
+            max-height: 130px;
+            max-width: 100%;
+            object-fit: contain;
+        }
+
+        .price-tag {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #198754;
+        }
+
+        .badge-cat {
+            font-size: 0.7rem;
+            font-weight: 600;
+            border-radius: 20px;
+            padding: 3px 8px;
+        }
+
+        .sem-resultados {
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .filtro-ativo {
+            background-color: #0d6efd;
+            color: white;
+            border-color: #0d6efd;
+        }
+    </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="/"><i class="bi bi-cpu me-2"></i>PC Builder ESEG</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navMenu">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="/componentes">Catálogo</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white-50" href="/recomendar">
+                        <i class="bi bi-lightning-charge me-1"></i>Recomendador
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white-50" href="/ranking">
+                        <i class="bi bi-trophy me-1"></i>Ranking
+                    </a>
+                </li>
+            </ul>
+            <ul class="navbar-nav ms-auto align-items-center">
+                <li class="nav-item me-3" sec:authorize="isAuthenticated()">
+                    <span class="nav-link text-white-50 small">
+                        <i class="bi bi-person-circle me-1"></i>
+                        <span th:text="${#authentication.name}"></span>
+                    </span>
+                </li>
+                <li class="nav-item me-2">
+                    <a href="/perfil" class="btn btn-outline-light btn-sm">
+                        <i class="bi bi-person me-1"></i>Perfil
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <form th:action="@{/logout}" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-outline-light btn-sm">
+                            <i class="bi bi-box-arrow-right me-1"></i>Sair
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container pb-5">
+
+    <!-- CABECALHO -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="fw-bold mb-0">Catálogo de Componentes</h4>
+            <span class="text-muted small">
+                <span th:text="${totalResultados}"></span> componentes encontrados
+            </span>
+        </div>
+        <a href="/" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Voltar ao Dashboard
+        </a>
+    </div>
+
+    <!-- FILTROS -->
+    <div class="card filtros-card p-3 mb-4">
+        <form method="get" th:action="@{/componentes}">
+            <div class="row g-2 align-items-end">
+
+                <!-- Busca por texto -->
+                <div class="col-12 col-md-3">
+                    <label class="form-label small fw-semibold text-muted mb-1">Buscar</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input type="text" name="busca" class="form-control border-start-0 ps-0"
+                               placeholder="Nome, spec, fabricante..."
+                               th:value="${buscaAtual}">
+                    </div>
+                </div>
+
+                <!-- Categoria -->
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold text-muted mb-1">Categoria</label>
+                    <select name="categoria" class="form-select">
+                        <option value="">Todas</option>
+                        <option th:each="cat : ${categorias}"
+                                th:value="${cat.nome}"
+                                th:text="${cat.nome}"
+                                th:selected="${cat.nome == categoriaAtual}"></option>
+                    </select>
+                </div>
+
+                <!-- Fabricante -->
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold text-muted mb-1">Fabricante</label>
+                    <select name="fabricante" class="form-select">
+                        <option value="">Todos</option>
+                        <option th:each="fab : ${fabricantes}"
+                                th:value="${fab.nome}"
+                                th:text="${fab.nome}"
+                                th:selected="${fab.nome == fabricanteAtual}"></option>
+                    </select>
+                </div>
+
+                <!-- Preco maximo -->
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold text-muted mb-1">Preço máximo</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white">R$</span>
+                        <input type="number" name="precoMax" class="form-control"
+                               placeholder="Ex: 2000" min="0" step="100"
+                               th:value="${precoMaxAtual}">
+                    </div>
+                </div>
+
+                <!-- Ordenacao -->
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold text-muted mb-1">Ordenar por</label>
+                    <select name="ordenar" class="form-select">
+                        <option value="">Relevância</option>
+                        <option value="preco_asc"
+                                th:selected="${ordenarAtual == 'preco_asc'}">Menor preço</option>
+                        <option value="preco_desc"
+                                th:selected="${ordenarAtual == 'preco_desc'}">Maior preço</option>
+                        <option value="nome_asc"
+                                th:selected="${ordenarAtual == 'nome_asc'}">A-Z</option>
+                        <option value="tdp_desc"
+                                th:selected="${ordenarAtual == 'tdp_desc'}">Maior desempenho</option>
+                    </select>
+                </div>
+
+                <!-- Botoes -->
+                <div class="col-12 col-md-1 d-flex gap-1">
+                    <button type="submit" class="btn btn-primary flex-fill">
+                        <i class="bi bi-search"></i>
+                    </button>
+                    <a href="/componentes" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                </div>
+
+            </div>
+
+            <!-- Tags de filtros ativos -->
+            <div class="mt-2 d-flex flex-wrap gap-1"
+                 th:if="${categoriaAtual != null or fabricanteAtual != null or buscaAtual != null or precoMaxAtual != null}">
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary py-1 px-2"
+                      th:if="${buscaAtual != null and !buscaAtual.isBlank()}">
+                    <i class="bi bi-search me-1"></i>
+                    <span th:text="${buscaAtual}"></span>
+                </span>
+                <span class="badge bg-success bg-opacity-10 text-success border border-success py-1 px-2"
+                      th:if="${categoriaAtual != null and !categoriaAtual.isBlank()}">
+                    <i class="bi bi-tag me-1"></i>
+                    <span th:text="${categoriaAtual}"></span>
+                </span>
+                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning py-1 px-2"
+                      th:if="${fabricanteAtual != null and !fabricanteAtual.isBlank()}">
+                    <i class="bi bi-building me-1"></i>
+                    <span th:text="${fabricanteAtual}"></span>
+                </span>
+                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger py-1 px-2"
+                      th:if="${precoMaxAtual != null}">
+                    <i class="bi bi-currency-dollar me-1"></i>
+                    até R$ <span th:text="${precoMaxAtual}"></span>
+                </span>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- GRID DE CATEGORIAS RAPIDAS -->
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a href="/componentes" class="btn btn-sm btn-outline-secondary"
+           th:classappend="${categoriaAtual == null or categoriaAtual.isBlank()} ? ' active filtro-ativo' : ''">
+            Todos
+        </a>
+        <a th:each="cat : ${categorias}"
+           th:href="@{/componentes(categoria=${cat.nome})}"
+           th:text="${cat.nome}"
+           class="btn btn-sm btn-outline-secondary"
+           th:classappend="${cat.nome == categoriaAtual} ? ' active filtro-ativo' : ''">
+        </a>
+    </div>
+
+    <!-- GRID DE COMPONENTES -->
+    <div class="row g-3" th:if="${!#lists.isEmpty(componentes)}">
+        <div th:each="comp : ${componentes}" class="col-6 col-md-4 col-lg-3">
+            <a th:href="@{/componentes/{id}(id=${comp.id})}" class="text-decoration-none">
+                <div class="comp-card card">
+
+                    <!-- Imagem -->
+                    <div class="comp-img-wrap">
+                        <img th:if="${comp.imagemUrl != null and !comp.imagemUrl.isBlank()}"
+                             th:src="${comp.imagemUrl}"
+                             th:alt="${comp.nome}"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+                        <div style="display:none; align-items:center; justify-content:center; font-size:2.5rem; color:#dee2e6;">
+                            <i class="bi bi-cpu"></i>
+                        </div>
+                        <div th:if="${comp.imagemUrl == null or comp.imagemUrl.isBlank()}"
+                             style="font-size:2.5rem; color:#dee2e6;">
+                            <i class="bi bi-cpu"></i>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <span class="badge bg-secondary badge-cat"
+                                  th:text="${comp.categoria.nome}"></span>
+                            <span class="badge bg-warning text-dark badge-cat"
+                                  th:text="${comp.tdpWatts + 'W'}"></span>
+                        </div>
+                        <div class="small text-muted mt-1" th:text="${comp.fabricante.nome}"></div>
+                        <div class="fw-bold text-dark mt-1 lh-sm"
+                             style="font-size:0.9rem"
+                             th:text="${comp.nome}"></div>
+                        <div class="price-tag mt-2" th:text="${comp.precoFormatado}"></div>
+
+                        <!-- Links rapidos de compra -->
+                        <div class="mt-2 d-flex gap-1 flex-wrap">
+                            <a th:if="${comp.linkKabum != null and !comp.linkKabum.isBlank()}"
+                               th:href="${comp.linkKabum}"
+                               target="_blank"
+                               class="btn btn-outline-warning btn-sm py-0 px-1"
+                               style="font-size:0.65rem"
+                               onclick="event.stopPropagation()">
+                                KaBuM!
+                            </a>
+                            <a th:if="${comp.linkPichau != null and !comp.linkPichau.isBlank()}"
+                               th:href="${comp.linkPichau}"
+                               target="_blank"
+                               class="btn btn-outline-danger btn-sm py-0 px-1"
+                               style="font-size:0.65rem"
+                               onclick="event.stopPropagation()">
+                                Pichau
+                            </a>
+                            <a th:if="${comp.linkTerabyte != null and !comp.linkTerabyte.isBlank()}"
+                               th:href="${comp.linkTerabyte}"
+                               target="_blank"
+                               class="btn btn-outline-primary btn-sm py-0 px-1"
+                               style="font-size:0.65rem"
+                               onclick="event.stopPropagation()">
+                                Terabyte
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- SEM RESULTADOS -->
+    <div th:if="${#lists.isEmpty(componentes)}" class="sem-resultados text-muted">
+        <i class="bi bi-search fs-1 mb-3"></i>
+        <h5 class="fw-semibold">Nenhum componente encontrado</h5>
+        <p class="small text-center">Tente ajustar os filtros ou
+            <a href="/componentes" class="text-primary">limpar todos os filtros</a>
+        </p>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

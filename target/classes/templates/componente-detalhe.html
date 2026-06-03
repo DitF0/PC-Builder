@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${componente.nome + ' - PC Builder ESEG'}">Componente</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f0f2f5; }
+        .navbar-brand { font-weight: 800; }
+        .detalhe-card {
+            border: none;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+        }
+        .img-box {
+            background: #fff;
+            border-radius: 14px;
+            padding: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 280px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+        }
+        .img-box img { max-height: 220px; max-width: 100%; object-fit: contain; }
+        .preco-grande { font-size: 2rem; font-weight: 800; color: #198754; }
+        .section-title {
+            font-weight: 700;
+            border-left: 4px solid #0d6efd;
+            padding-left: 10px;
+            margin-bottom: 1rem;
+        }
+        .spec-table td { padding: 8px 12px; border-color: #f0f2f5; }
+        .spec-table td:first-child { color: #6c757d; font-weight: 600; width: 45%; }
+        .comp-similar-card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            transition: transform 0.15s;
+            overflow: hidden;
+        }
+        .comp-similar-card:hover { transform: translateY(-3px); }
+        .comp-similar-img {
+            background: #f8f9fa;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+        }
+        .comp-similar-img img { max-height: 64px; object-fit: contain; }
+        .btn-compra-kabum  { background: #f7a600; border-color: #f7a600; color: #1a1a1a; font-weight: 700; }
+        .btn-compra-pichau { background: #e63946; border-color: #e63946; color: #fff; font-weight: 700; }
+        .btn-compra-terabyte { background: #1d3557; border-color: #1d3557; color: #fff; font-weight: 700; }
+        .btn-compra-kabum:hover  { background: #e09600; }
+        .btn-compra-pichau:hover { background: #c1121f; }
+        .btn-compra-terabyte:hover { background: #162640; }
+        .complementar-card {
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 12px;
+            text-decoration: none;
+            display: block;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .complementar-card:hover {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 3px rgba(13,110,253,0.1);
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="/"><i class="bi bi-cpu me-2"></i>PC Builder ESEG</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" href="/">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link active" href="/componentes">Catálogo</a></li>
+                <li class="nav-item">
+                    <a class="nav-link text-white-50" href="/ranking">
+                        <i class="bi bi-trophy me-1"></i>Ranking
+                    </a>
+                </li>
+            </ul>
+            <ul class="navbar-nav ms-auto align-items-center">
+                <li class="nav-item me-2" sec:authorize="isAuthenticated()">
+                    <span class="nav-link text-white-50 small">
+                        <i class="bi bi-person-circle me-1"></i>
+                        <span th:text="${#authentication.name}"></span>
+                    </span>
+                </li>
+                <li class="nav-item me-2">
+                    <a href="/perfil" class="btn btn-outline-light btn-sm">
+                        <i class="bi bi-person me-1"></i>Perfil
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <form th:action="@{/logout}" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-outline-light btn-sm">
+                            <i class="bi bi-box-arrow-right me-1"></i>Sair
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container pb-5">
+
+    <!-- BREADCRUMB -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="/componentes">Catálogo</a></li>
+            <li class="breadcrumb-item">
+                <a th:href="@{/componentes(categoria=${componente.categoria.nome})}"
+                   th:text="${componente.categoria.nome}"></a>
+            </li>
+            <li class="breadcrumb-item active" th:text="${componente.nome}"></li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+
+        <!-- COLUNA ESQUERDA: imagem e botões de compra -->
+        <div class="col-md-4">
+
+            <!-- Imagem -->
+            <div class="img-box mb-3">
+                <img th:if="${componente.imagemUrl != null and !componente.imagemUrl.isBlank()}"
+                     th:src="${componente.imagemUrl}"
+                     th:alt="${componente.nome}"
+                     onerror="this.style.display='none'">
+                <i th:if="${componente.imagemUrl == null or componente.imagemUrl.isBlank()}"
+                   class="bi bi-cpu text-muted" style="font-size:5rem"></i>
+            </div>
+
+            <!-- Preco e badges -->
+            <div class="card detalhe-card p-3 mb-3">
+                <div class="d-flex gap-2 mb-2">
+                    <span class="badge bg-secondary"
+                          th:text="${componente.categoria.nome}"></span>
+                    <span class="badge bg-warning text-dark"
+                          th:text="${componente.tdpWatts + 'W'}"></span>
+                    <span th:if="${componente.socket != null and !componente.socket.isBlank()}"
+                          class="badge bg-info text-dark"
+                          th:text="${componente.socket}"></span>
+                </div>
+                <div class="text-muted small" th:text="${componente.fabricante.nome}"></div>
+                <h5 class="fw-bold mt-1" th:text="${componente.nome}"></h5>
+                <div class="preco-grande" th:text="${componente.precoFormatado}"></div>
+                <div class="text-muted small mt-1">Preço de referência</div>
+            </div>
+
+            <!-- Botoes de compra -->
+            <div class="card detalhe-card p-3">
+                <div class="fw-semibold mb-2 text-muted small">
+                    <i class="bi bi-cart3 me-1"></i>Comprar neste produto
+                </div>
+
+                <div class="d-grid gap-2">
+                    <a th:if="${componente.linkKabum != null and !componente.linkKabum.isBlank()}"
+                       th:href="${componente.linkKabum}"
+                       target="_blank"
+                       class="btn btn-compra-kabum">
+                        <i class="bi bi-bag me-2"></i>Buscar no KaBuM!
+                    </a>
+                    <a th:if="${componente.linkPichau != null and !componente.linkPichau.isBlank()}"
+                       th:href="${componente.linkPichau}"
+                       target="_blank"
+                       class="btn btn-compra-pichau">
+                        <i class="bi bi-bag me-2"></i>Buscar na Pichau
+                    </a>
+                    <a th:if="${componente.linkTerabyte != null and !componente.linkTerabyte.isBlank()}"
+                       th:href="${componente.linkTerabyte}"
+                       target="_blank"
+                       class="btn btn-compra-terabyte">
+                        <i class="bi bi-bag me-2"></i>Buscar na Terabyte
+                    </a>
+                </div>
+
+                <div class="alert alert-info py-2 px-3 mt-3 mb-0 small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Os links abrem a busca do produto no site. Verifique preço, frete e estoque diretamente no vendedor.
+                </div>
+            </div>
+
+        </div>
+
+        <!-- COLUNA DIREITA: specs e recomendacoes -->
+        <div class="col-md-8">
+
+            <!-- Especificacoes tecnicas -->
+            <div class="card detalhe-card p-4 mb-4">
+                <h5 class="section-title">Especificações Técnicas</h5>
+                <table class="table spec-table table-borderless mb-0">
+                    <tbody>
+                    <tr>
+                        <td>Categoria</td>
+                        <td th:text="${componente.categoria.nome}"></td>
+                    </tr>
+                    <tr>
+                        <td>Fabricante</td>
+                        <td th:text="${componente.fabricante.nome}"></td>
+                    </tr>
+                    <tr>
+                        <td>Especificação</td>
+                        <td th:text="${componente.especificacao}"></td>
+                    </tr>
+                    <tr th:if="${componente.socket != null and !componente.socket.isBlank()}">
+                        <td>Socket</td>
+                        <td>
+                                <span class="badge bg-info text-dark"
+                                      th:text="${componente.socket}"></span>
+                        </td>
+                    </tr>
+                    <tr th:if="${componente.ddrVersion != null and !componente.ddrVersion.isBlank()}">
+                        <td>Versão DDR</td>
+                        <td>
+                                <span class="badge bg-secondary"
+                                      th:text="${componente.ddrVersion}"></span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Consumo / Capacidade</td>
+                        <td>
+                                <span class="badge bg-warning text-dark"
+                                      th:text="${componente.tdpWatts + ' Watts'}"></span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Preço de referência</td>
+                        <td class="text-success fw-bold"
+                            th:text="${componente.precoFormatado}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Combina bem com -->
+            <div class="card detalhe-card p-4 mb-4"
+                 th:if="${complementares != null and !complementares.isEmpty()}">
+                <h5 class="section-title">
+                    <i class="bi bi-stars text-warning me-1"></i>Combina bem com
+                </h5>
+                <p class="text-muted small mb-3">
+                    Componentes compatíveis e complementares para montar sua build.
+                </p>
+                <div class="row g-2">
+                    <div th:each="entry : ${complementares}" class="col-md-6">
+                        <a th:href="@{/componentes/{id}(id=${entry.value.id})}"
+                           class="complementar-card">
+                            <div class="small text-primary fw-bold mb-1"
+                                 th:text="${entry.key}"></div>
+                            <div class="d-flex align-items-center gap-2">
+                                <img th:if="${entry.value.imagemUrl != null}"
+                                     th:src="${entry.value.imagemUrl}"
+                                     style="width:40px; height:40px; object-fit:contain"
+                                     th:alt="${entry.value.nome}"
+                                     onerror="this.style.display='none'">
+                                <div>
+                                    <div class="fw-semibold text-dark small lh-sm"
+                                         th:text="${entry.value.nome}"></div>
+                                    <div class="text-success small fw-bold"
+                                         th:text="${entry.value.precoFormatado}"></div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Adicionar a build e Wishlist -->
+            <div class="card detalhe-card p-4 border-primary mb-4" style="border-width:2px !important">
+                <h5 class="section-title">Adicionar à Minha Build</h5>
+                <p class="text-muted small">
+                    Vá ao Dashboard para montar sua configuração completa.
+                </p>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="/" class="btn btn-primary fw-bold">
+                        <i class="bi bi-cpu me-2"></i>Ir para o Dashboard
+                    </a>
+                    <button class="btn fw-bold"
+                            th:classappend="${naWishlist} ? 'btn-danger' : 'btn-outline-danger'"
+                            th:id="${'wishlist-btn-' + componente.id}"
+                            th:onclick="${'toggleWishlist(' + componente.id + ', this)'}">
+                        <i class="bi bi-heart-fill me-1"></i>
+                        <span th:text="${naWishlist} ? 'Na Wishlist' : 'Adicionar à Wishlist'"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- AVALIACOES -->
+            <div class="card detalhe-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="section-title mb-0">Avaliações</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- Estrelas da media -->
+                        <div>
+                <span th:each="i : ${#numbers.sequence(1, 5)}">
+                    <i th:classappend="${i <= mediaNotas} ? 'bi bi-star-fill text-warning' : 'bi bi-star text-muted'"
+                       style="font-size:1.1rem"></i>
+                </span>
+                        </div>
+                        <span class="fw-bold" th:text="${mediaNotas}">0</span>
+                        <span class="text-muted small">
+                (<span th:text="${totalAvaliacoes}"></span> avaliações)
+            </span>
+                    </div>
+                </div>
+
+                <!-- Formulario de avaliacao -->
+                <div class="card bg-light border-0 p-3 mb-3">
+                    <h6 class="fw-semibold mb-2">
+                        <span th:if="${minhaAvaliacao != null}">Editar sua avaliação</span>
+                        <span th:if="${minhaAvaliacao == null}">Deixar uma avaliação</span>
+                    </h6>
+                    <form th:action="@{/componentes/{id}/avaliar(id=${componente.id})}"
+                          method="post">
+                        <div class="d-flex align-items-center gap-3 mb-2">
+                            <div class="d-flex gap-1" id="estrelas">
+                                <th:block th:each="n : ${#numbers.sequence(1, 5)}">
+                                    <input type="radio" name="nota" th:value="${n}"
+                                           th:id="${'nota-' + n}"
+                                           class="d-none nota-radio"
+                                           th:checked="${minhaAvaliacao != null and minhaAvaliacao.nota == n}">
+                                    <label th:for="${'nota-' + n}"
+                                           class="estrela-label"
+                                           style="cursor:pointer; font-size:1.5rem; color:#dee2e6"
+                                           th:classappend="${minhaAvaliacao != null and minhaAvaliacao.nota >= n}
+                                              ? ' text-warning' : ''">
+                                        ★
+                                    </label>
+                                </th:block>
+                            </div>
+                            <span class="text-muted small" id="textoNota">Clique para avaliar</span>
+                        </div>
+                        <textarea name="comentario" class="form-control mb-2"
+                                  rows="2" placeholder="Comentário (opcional)"
+                                  th:text="${minhaAvaliacao != null ? minhaAvaliacao.comentario : ''}">
+            </textarea>
+                        <button type="submit" class="btn btn-primary btn-sm fw-semibold">
+                            <i class="bi bi-send me-1"></i>Enviar Avaliação
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Lista de avaliacoes -->
+                <div th:if="${#lists.isEmpty(avaliacoes)}" class="text-center py-3 text-muted small">
+                    Nenhuma avaliação ainda. Seja o primeiro a avaliar!
+                </div>
+
+                <div th:each="av : ${avaliacoes}" class="border-bottom py-2">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="fw-semibold small" th:text="${av.usuario.nome}"></div>
+                                <div>
+                        <span th:each="i : ${#numbers.sequence(1, 5)}">
+                            <i th:classappend="${i <= av.nota}
+                                              ? 'bi bi-star-fill text-warning'
+                                              : 'bi bi-star text-muted'"
+                               style="font-size:0.8rem"></i>
+                        </span>
+                                </div>
+                            </div>
+                            <p class="text-muted small mb-0 mt-1"
+                               th:text="${av.comentario}"></p>
+                        </div>
+                        <span class="text-muted" style="font-size:0.72rem; white-space:nowrap"
+                              th:if="${av.data != null}"
+                              th:text="${#temporals.format(av.data, 'dd/MM/yyyy')}"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- COMPONENTES SIMILARES -->
+    <div class="mt-5" th:if="${similares != null and !similares.isEmpty()}">
+        <h5 class="fw-bold mb-3">
+            <i class="bi bi-grid me-2 text-primary"></i>Componentes Similares
+        </h5>
+        <div class="row g-3">
+            <div th:each="sim : ${similares}" class="col-6 col-md-3">
+                <a th:href="@{/componentes/{id}(id=${sim.id})}" class="text-decoration-none">
+                    <div class="comp-similar-card card h-100">
+                        <div class="comp-similar-img">
+                            <img th:if="${sim.imagemUrl != null and !sim.imagemUrl.isBlank()}"
+                                 th:src="${sim.imagemUrl}"
+                                 th:alt="${sim.nome}"
+                                 onerror="this.style.display='none'">
+                            <i th:if="${sim.imagemUrl == null or sim.imagemUrl.isBlank()}"
+                               class="bi bi-cpu text-muted" style="font-size:1.8rem"></i>
+                        </div>
+                        <div class="card-body p-2">
+                            <div class="small text-muted" th:text="${sim.fabricante.nome}"></div>
+                            <div class="fw-semibold text-dark small lh-sm mt-1"
+                                 th:text="${sim.nome}"></div>
+                            <div class="text-success fw-bold small mt-1"
+                                 th:text="${sim.precoFormatado}"></div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Interatividade das estrelas de avaliacao
+    const labels = document.querySelectorAll('.estrela-label');
+    const textos = ['Muito ruim', 'Ruim', 'Regular', 'Bom', 'Excelente!'];
+
+    labels.forEach((label, idx) => {
+        label.addEventListener('mouseover', () => {
+            labels.forEach((l, i) => {
+                l.style.color = i <= idx ? '#ffc107' : '#dee2e6';
+            });
+            document.getElementById('textoNota').textContent = textos[idx];
+        });
+        label.addEventListener('click', () => {
+            document.getElementById('nota-' + (idx + 1)).checked = true;
+        });
+    });
+
+    document.getElementById('estrelas')?.addEventListener('mouseleave', () => {
+        const checked = document.querySelector('.nota-radio:checked');
+        labels.forEach((l, i) => {
+            l.style.color = checked && i < parseInt(checked.value)
+                ? '#ffc107' : '#dee2e6';
+        });
+        document.getElementById('textoNota').textContent =
+            checked ? textos[parseInt(checked.value) - 1] : 'Clique para avaliar';
+    });
+
+    // Toggle wishlist
+    function toggleWishlist(componenteId, btn) {
+        fetch('/wishlist/toggle/' + componenteId, { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.adicionado !== undefined) {
+                    if (data.adicionado) {
+                        btn.classList.remove('btn-outline-danger');
+                        btn.classList.add('btn-danger');
+                        btn.querySelector('span').textContent = 'Na Wishlist';
+                    } else {
+                        btn.classList.remove('btn-danger');
+                        btn.classList.add('btn-outline-danger');
+                        btn.querySelector('span').textContent = 'Adicionar à Wishlist';
+                    }
+                }
+            })
+            .catch(() => alert('Erro. Tente novamente.'));
+    }
+</script>
+</body>
+</html>

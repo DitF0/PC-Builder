@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ranking de Builds - PC Builder ESEG</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f0f2f5; }
+        .navbar-brand { font-weight: 800; }
+
+        .ranking-card {
+            border: none;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+            transition: transform 0.15s, box-shadow 0.15s;
+            overflow: hidden;
+        }
+        .ranking-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+
+        .posicao-badge {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .pos-1 { background: linear-gradient(135deg, #FFD700, #FFA500); color: #1a1a1a; }
+        .pos-2 { background: linear-gradient(135deg, #C0C0C0, #A8A8A8); color: #1a1a1a; }
+        .pos-3 { background: linear-gradient(135deg, #CD7F32, #A0522D); color: #fff; }
+        .pos-outros { background: #e9ecef; color: #6c757d; }
+
+        .curtir-btn {
+            border: 1px solid #dee2e6;
+            background: #fff;
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .curtir-btn:hover {
+            border-color: #dc3545;
+            color: #dc3545;
+        }
+        .curtir-btn.curtido {
+            background: #fff5f5;
+            border-color: #dc3545;
+            color: #dc3545;
+        }
+
+        .item-build {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 4px 10px;
+            font-size: 0.78rem;
+            display: inline-block;
+            margin: 2px;
+        }
+
+        .vazio-box {
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="/"><i class="bi bi-cpu me-2"></i>PC Builder ESEG</a>
+        <button class="navbar-toggler" type="button"
+                data-bs-toggle="collapse" data-bs-target="#navRank">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navRank">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" href="/">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" href="/componentes">Catálogo</a></li>
+                <li class="nav-item"><a class="nav-link" href="/recomendar">Recomendador</a></li>
+                <li class="nav-item"><a class="nav-link active" href="/ranking">Ranking</a></li>
+            </ul>
+            <ul class="navbar-nav ms-auto align-items-center">
+                <li class="nav-item me-2" sec:authorize="isAuthenticated()">
+                    <span class="nav-link text-white-50 small">
+                        <i class="bi bi-person-circle me-1"></i>
+                        <span th:text="${#authentication.name}"></span>
+                    </span>
+                </li>
+                <li class="nav-item me-2">
+                    <a href="/perfil" class="btn btn-outline-light btn-sm">
+                        <i class="bi bi-person me-1"></i>Meu Perfil
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <form th:action="@{/logout}" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-outline-light btn-sm">
+                            <i class="bi bi-box-arrow-right me-1"></i>Sair
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container pb-5">
+
+    <!-- CABECALHO -->
+    <div class="text-center mb-5">
+        <h2 class="fw-bold">
+            <i class="bi bi-trophy-fill text-warning me-2"></i>
+            Ranking de Builds
+        </h2>
+        <p class="text-muted">As builds públicas mais curtidas da comunidade PC Builder ESEG</p>
+    </div>
+
+    <!-- SEM BUILDS -->
+    <div th:if="${#lists.isEmpty(builds)}" class="vazio-box text-muted">
+        <i class="bi bi-trophy fs-1 mb-3 text-warning opacity-50"></i>
+        <h5 class="fw-semibold">Nenhuma build pública ainda</h5>
+        <p class="small text-center">
+            Monte sua build no Dashboard e torne-a pública para aparecer aqui!
+        </p>
+        <a href="/" class="btn btn-primary mt-2">Criar minha Build</a>
+    </div>
+
+    <!-- LISTA DE BUILDS -->
+    <div th:each="build, stat : ${builds}" class="ranking-card card mb-3 p-4">
+        <div class="d-flex align-items-start gap-3">
+
+            <!-- Posicao -->
+            <div class="posicao-badge"
+                 th:classappend="${stat.index == 0} ? ' pos-1' :
+                                 ${stat.index == 1} ? ' pos-2' :
+                                 ${stat.index == 2} ? ' pos-3' : ' pos-outros'"
+                 th:text="${stat.index + 1}">
+            </div>
+
+            <!-- Conteudo -->
+            <div class="flex-fill">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                    <div>
+                        <h5 class="fw-bold mb-0" th:text="${build.nomeBuild}"></h5>
+                        <div class="text-muted small">
+                            <i class="bi bi-person me-1"></i>
+                            por <strong th:text="${build.usuario.nome}"></strong>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span class="badge bg-success fs-6 px-3 py-2"
+                              th:text="${build.valorTotalFormatado}"></span>
+                        <span class="badge bg-warning text-dark"
+                              th:text="${build.tdpTotal + 'W'}"></span>
+                    </div>
+                </div>
+
+                <!-- Componentes -->
+                <div class="mt-2 mb-3">
+                    <span th:each="item : ${build.itens}" class="item-build">
+                        <i class="bi bi-cpu me-1 text-primary"></i>
+                        <span th:text="${item.componente.nome}"></span>
+                    </span>
+                </div>
+
+                <!-- Rodape: curtidas -->
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-3">
+                        <button class="curtir-btn"
+                                th:id="${'curtir-' + build.id}"
+                                th:onclick="${'curtirBuild(' + build.id + ', this)'}">
+                            <i class="bi bi-heart-fill text-danger"></i>
+                            <span th:id="${'count-' + build.id}"
+                                  th:text="${build.curtidas}"></span>
+                            curtidas
+                        </button>
+                        <span class="text-muted small">
+                            <i class="bi bi-cpu me-1"></i>
+                            <span th:text="${#lists.size(build.itens)}"></span> componentes
+                        </span>
+                    </div>
+                    <span class="text-muted small"
+                          th:if="${build.dataCriacao != null}"
+                          th:text="${'Criada em ' + #temporals.format(build.dataCriacao, 'dd/MM/yyyy')}">
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function curtirBuild(id, btn) {
+        fetch('/build/curtir/' + id, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content || ''
+            }
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.sucesso) {
+                    document.getElementById('count-' + id).textContent = data.curtidas;
+                    btn.classList.add('curtido');
+                    btn.disabled = true;
+                }
+            })
+            .catch(() => alert('Erro ao curtir. Tente novamente.'));
+    }
+</script>
+</body>
+</html>

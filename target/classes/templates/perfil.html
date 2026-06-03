@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Perfil - PC Builder ESEG</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f0f2f5; }
+        .navbar-brand { font-weight: 800; }
+
+        .perfil-header {
+            background: linear-gradient(135deg, #0d6efd 0%, #0056b3 100%);
+            border-radius: 16px;
+            padding: 2rem;
+            color: white;
+            margin-bottom: 1.5rem;
+        }
+
+        .avatar-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 700;
+            border: 3px solid rgba(255,255,255,0.4);
+            flex-shrink: 0;
+        }
+
+        .stat-mini {
+            background: rgba(255,255,255,0.15);
+            border-radius: 10px;
+            padding: 12px 16px;
+            text-align: center;
+        }
+        .stat-mini .valor { font-size: 1.6rem; font-weight: 800; }
+        .stat-mini .label { font-size: 0.75rem; opacity: 0.8; }
+
+        .secao-card {
+            border: none;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+        }
+
+        .section-title {
+            font-weight: 700;
+            border-left: 4px solid #0d6efd;
+            padding-left: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .build-row {
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 8px;
+            background: #fff;
+            transition: border-color 0.15s;
+        }
+        .build-row:hover { border-color: #0d6efd; }
+        .build-row.publica { border-left: 4px solid #198754; }
+        .build-row.privada { border-left: 4px solid #dee2e6; }
+
+        .wishlist-item {
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 12px;
+            background: #fff;
+            transition: border-color 0.15s;
+        }
+        .wishlist-item:hover { border-color: #0d6efd; }
+
+        .img-wishlist {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 4px;
+        }
+
+        .toggle-publico-btn {
+            font-size: 0.75rem;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="/"><i class="bi bi-cpu me-2"></i>PC Builder ESEG</a>
+        <button class="navbar-toggler" type="button"
+                data-bs-toggle="collapse" data-bs-target="#navPerfil">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navPerfil">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" href="/">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" href="/componentes">Catálogo</a></li>
+                <li class="nav-item"><a class="nav-link" href="/recomendar">Recomendador</a></li>
+                <li class="nav-item"><a class="nav-link" href="/ranking">Ranking</a></li>
+            </ul>
+            <ul class="navbar-nav ms-auto align-items-center">
+                <li class="nav-item me-2">
+                    <a href="/perfil" class="btn btn-light btn-sm fw-semibold">
+                        <i class="bi bi-person me-1"></i>Meu Perfil
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <form th:action="@{/logout}" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-outline-light btn-sm">
+                            <i class="bi bi-box-arrow-right me-1"></i>Sair
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container pb-5">
+
+    <!-- HEADER DO PERFIL -->
+    <div class="perfil-header">
+        <div class="d-flex align-items-center gap-4 flex-wrap">
+
+            <!-- Avatar com iniciais -->
+            <div class="avatar-circle" sec:authorize="isAuthenticated()">
+                <span th:text="${#authentication.name.substring(0,1).toUpperCase()}">U</span>
+            </div>
+
+            <!-- Nome e email -->
+            <div class="flex-fill">
+                <h3 class="fw-bold mb-0" sec:authorize="isAuthenticated()"
+                    th:text="${#authentication.name}">Usuário</h3>
+                <div class="opacity-75 small">Membro PC Builder ESEG</div>
+            </div>
+
+            <!-- Stats -->
+            <div class="row g-2">
+                <div class="col">
+                    <div class="stat-mini">
+                        <div class="valor" th:text="${#lists.size(builds)}">0</div>
+                        <div class="label">Builds</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="stat-mini">
+                        <div class="valor" th:text="${buildsPublicas}">0</div>
+                        <div class="label">Públicas</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="stat-mini">
+                        <div class="valor" th:text="${totalCurtidas}">0</div>
+                        <div class="label">Curtidas</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="stat-mini">
+                        <div class="valor" th:text="${totalInvestido}">R$ 0</div>
+                        <div class="label">Investido</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- COLUNA ESQUERDA: Minhas Builds -->
+        <div class="col-lg-7">
+            <div class="card secao-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="section-title mb-0">Minhas Builds</h5>
+                    <a href="/" class="btn btn-primary btn-sm">
+                        <i class="bi bi-plus me-1"></i>Nova Build
+                    </a>
+                </div>
+
+                <div th:if="${#lists.isEmpty(builds)}" class="text-center py-4 text-muted">
+                    <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                    Nenhuma build criada ainda.
+                </div>
+
+                <div th:each="build : ${builds}"
+                     class="build-row"
+                     th:classappend="${build.publica} ? ' publica' : ' privada'">
+
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div class="flex-fill">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="fw-bold" th:text="${build.nomeBuild}"></span>
+                                <span th:if="${build.publica}"
+                                      class="badge bg-success" style="font-size:0.65rem">
+                                    <i class="bi bi-globe me-1"></i>Pública
+                                </span>
+                                <span th:if="${!build.publica}"
+                                      class="badge bg-secondary" style="font-size:0.65rem">
+                                    <i class="bi bi-lock me-1"></i>Privada
+                                </span>
+                                <span th:if="${build.publica}" class="text-muted small">
+                                    <i class="bi bi-heart-fill text-danger me-1"></i>
+                                    <span th:text="${build.curtidas}"></span>
+                                </span>
+                            </div>
+                            <div class="text-success small fw-semibold mt-1"
+                                 th:text="${build.valorTotalFormatado}"></div>
+                            <div class="text-muted" style="font-size:0.75rem">
+                                <span th:text="${#lists.size(build.itens)}"></span> componentes •
+                                <span th:text="${build.tdpTotal + 'W'}"></span>
+                            </div>
+                        </div>
+
+                        <!-- Acoes -->
+                        <div class="d-flex flex-column gap-1 align-items-end">
+                            <!-- Toggle publico/privado -->
+                            <form th:action="@{/build/visibilidade/{id}(id=${build.id})}"
+                                  method="post">
+                                <button type="submit"
+                                        class="toggle-publico-btn btn"
+                                        th:classappend="${build.publica}
+                                                        ? ' btn-outline-secondary'
+                                                        : ' btn-outline-success'">
+                                    <i th:classappend="${build.publica}
+                                                       ? 'bi bi-lock'
+                                                       : 'bi bi-globe'"></i>
+                                    <span th:text="${build.publica ? ' Tornar privada' : ' Tornar pública'}"></span>
+                                </button>
+                            </form>
+
+                            <div class="d-flex gap-1">
+                                <a th:href="@{/editar/{id}(id=${build.id})}"
+                                   class="btn btn-outline-primary btn-sm toggle-publico-btn">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form th:action="@{/excluir/{id}(id=${build.id})}"
+                                      method="post"
+                                      onsubmit="return confirm('Excluir esta build?')">
+                                    <button type="submit"
+                                            class="btn btn-outline-danger btn-sm toggle-publico-btn">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUNA DIREITA: Wishlist -->
+        <div class="col-lg-5">
+            <div class="card secao-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="section-title mb-0">
+                        <i class="bi bi-heart-fill text-danger me-2"></i>Wishlist
+                    </h5>
+                    <a href="/componentes" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-plus me-1"></i>Adicionar
+                    </a>
+                </div>
+
+                <div th:if="${#lists.isEmpty(wishlist)}" class="text-center py-4 text-muted">
+                    <i class="bi bi-heart fs-2 d-block mb-2"></i>
+                    Nenhum componente na wishlist.
+                    <div class="small mt-1">
+                        <a href="/componentes" class="text-primary">Ver catálogo</a>
+                    </div>
+                </div>
+
+                <div th:each="item : ${wishlist}" class="wishlist-item mb-2">
+                    <div class="d-flex align-items-center gap-3">
+                        <img th:if="${item.componente.imagemUrl != null}"
+                             th:src="${item.componente.imagemUrl}"
+                             class="img-wishlist"
+                             th:alt="${item.componente.nome}"
+                             onerror="this.style.display='none'">
+                        <i th:if="${item.componente.imagemUrl == null}"
+                           class="bi bi-cpu text-muted"
+                           style="font-size:1.5rem; width:48px; text-align:center"></i>
+
+                        <div class="flex-fill">
+                            <a th:href="@{/componentes/{id}(id=${item.componente.id})}"
+                               class="text-decoration-none text-dark">
+                                <div class="fw-semibold small lh-sm"
+                                     th:text="${item.componente.nome}"></div>
+                            </a>
+                            <div class="text-muted" style="font-size:0.72rem"
+                                 th:text="${item.componente.fabricante.nome + ' • ' + item.componente.categoria.nome}">
+                            </div>
+                            <div class="text-success small fw-bold"
+                                 th:text="${item.componente.precoFormatado}"></div>
+                        </div>
+
+                        <div class="d-flex flex-column gap-1 align-items-end">
+                            <div class="d-flex gap-1">
+                                <a th:if="${item.componente.linkKabum != null}"
+                                   th:href="${item.componente.linkKabum}"
+                                   target="_blank"
+                                   class="btn btn-outline-warning btn-sm py-0 px-1"
+                                   style="font-size:0.65rem">
+                                    KaBuM!
+                                </a>
+                                <a th:if="${item.componente.linkPichau != null}"
+                                   th:href="${item.componente.linkPichau}"
+                                   target="_blank"
+                                   class="btn btn-outline-danger btn-sm py-0 px-1"
+                                   style="font-size:0.65rem">
+                                    Pichau
+                                </a>
+                            </div>
+                            <button class="btn btn-outline-secondary btn-sm py-0 px-2"
+                                    style="font-size:0.72rem"
+                                    th:onclick="${'removerWishlist(' + item.componente.id + ', this)'}">
+                                <i class="bi bi-x"></i> Remover
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function removerWishlist(componenteId, btn) {
+        fetch('/wishlist/toggle/' + componenteId, { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.adicionado) {
+                    btn.closest('.wishlist-item').remove();
+                }
+            })
+            .catch(() => alert('Erro ao remover. Tente novamente.'));
+    }
+</script>
+</body>
+</html>

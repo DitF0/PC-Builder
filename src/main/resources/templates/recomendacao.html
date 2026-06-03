@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recomendador - PC Builder ESEG</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f0f2f5; }
+        .navbar-brand { font-weight: 800; }
+
+        .perfil-card {
+            border: 2px solid #dee2e6;
+            border-radius: 14px;
+            padding: 1.25rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #fff;
+            user-select: none;
+        }
+        .perfil-card:hover { border-color: #0d6efd; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(13,110,253,0.15); }
+        .perfil-card.selecionado {
+            border-color: #0d6efd;
+            background: #f0f5ff;
+            box-shadow: 0 0 0 3px rgba(13,110,253,0.2);
+        }
+        .perfil-emoji { font-size: 1.8rem; line-height: 1; }
+        .perfil-label { font-weight: 700; font-size: 0.95rem; margin-top: 8px; }
+        .perfil-desc { font-size: 0.78rem; color: #6c757d; margin-top: 4px; }
+
+        .resultado-card {
+            border: none;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+        }
+
+        .section-title {
+            font-weight: 700;
+            border-left: 4px solid #0d6efd;
+            padding-left: 10px;
+        }
+
+        .comp-linha {
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 6px;
+            background: #fff;
+            transition: border-color 0.15s;
+            cursor: pointer;
+        }
+        .comp-linha:hover { border-color: #0d6efd; }
+        .comp-linha.top-pick { border-color: #198754; background: #f0faf4; }
+        .comp-linha.selecionado-linha { border-color: #0d6efd; background: #f0f5ff; }
+
+        .comp-img-mini {
+            width: 44px; height: 44px;
+            object-fit: contain;
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 4px;
+        }
+
+        .badge-top {
+            background: #198754; color: white;
+            font-size: 0.65rem; padding: 2px 6px; border-radius: 20px;
+        }
+
+        .estimativa-box {
+            background: linear-gradient(135deg, #0d6efd 0%, #0056b3 100%);
+            border-radius: 14px; padding: 1.5rem; color: white;
+        }
+
+        .comprar-link { font-size: 0.72rem; padding: 2px 7px; border-radius: 4px; }
+
+        .tab-categoria {
+            font-size: 0.8rem; font-weight: 600;
+            padding: 6px 12px; border-radius: 20px;
+            border: 1px solid #dee2e6; color: #6c757d;
+            background: #fff; cursor: pointer;
+            text-decoration: none; transition: all 0.15s;
+        }
+        .tab-categoria.active, .tab-categoria:hover {
+            background: #0d6efd; color: #fff; border-color: #0d6efd;
+        }
+
+        .orcamento-display {
+            font-size: 1.1rem; font-weight: 700; color: #0d6efd;
+            min-width: 120px; text-align: right;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="/"><i class="bi bi-cpu me-2"></i>PC Builder ESEG</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navRec">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navRec">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" href="/">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" href="/componentes">Catálogo</a></li>
+                <li class="nav-item"><a class="nav-link active" href="/recomendar">Recomendador</a></li>
+                <li class="nav-item"><a class="nav-link" href="/ranking"><i class="bi bi-trophy me-1"></i>Ranking</a></li>
+            </ul>
+            <ul class="navbar-nav ms-auto align-items-center">
+                <li class="nav-item me-2" sec:authorize="isAuthenticated()">
+                    <span class="nav-link text-white-50 small">
+                        <i class="bi bi-person-circle me-1"></i>
+                        <span th:text="${#authentication.name}"></span>
+                    </span>
+                </li>
+                <li class="nav-item me-2">
+                    <a href="/perfil" class="btn btn-outline-light btn-sm"><i class="bi bi-person me-1"></i>Perfil</a>
+                </li>
+                <li class="nav-item">
+                    <form th:action="@{/logout}" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-outline-light btn-sm">
+                            <i class="bi bi-box-arrow-right me-1"></i>Sair
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container pb-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold mb-0">
+                <i class="bi bi-lightning-charge-fill text-warning me-2"></i>Recomendador por Perfil
+            </h4>
+            <p class="text-muted small mb-0">Escolha seu perfil e o sistema seleciona os melhores componentes para você.</p>
+        </div>
+        <a href="/" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Dashboard</a>
+    </div>
+
+    <!-- FORMULARIO DE SELECAO -->
+    <form method="get" th:action="@{/recomendar/resultado}" id="formPerfil">
+
+        <!-- Campo oculto com navegação segura contra NullPointerException -->
+        <input type="hidden" name="perfil" id="perfilSelecionado"
+               th:value="${recomendacao?.perfil?.name() ?: ''}">
+
+        <!-- Campo oculto para o orçamento -->
+        <input type="hidden" name="orcamento" id="orcamentoHidden"
+               th:value="${orcamento != null ? orcamento.intValue() : ''}">
+
+        <div class="card resultado-card p-4 mb-4">
+
+            <!-- PASSO 1: CARDS DE PERFIL -->
+            <h6 class="fw-bold text-muted mb-3 text-uppercase small">1. Clique no seu perfil para ver as recomendações</h6>
+            <div class="d-flex flex-wrap gap-2 mb-4" style="flex-wrap: nowrap !important; overflow-x: auto; padding-bottom: 4px;">
+
+                <div style="min-width: 180px; flex: 1;">
+                    <div class="perfil-card h-100" id="card-GAMER"
+                         th:classappend="${recomendacao != null and recomendacao.perfil.name() == 'GAMER'} ? ' selecionado' : ''"
+                         onclick="selecionarPerfil('GAMER', this)">
+                        <div class="perfil-emoji">🎮</div>
+                        <div class="perfil-label">Gamer</div>
+                        <div class="perfil-desc">Máximo desempenho em jogos. GPU poderosa, CPU rápida e RAM de alta frequência.</div>
+                    </div>
+                </div>
+
+                <div style="min-width: 180px; flex: 1;">
+                    <div class="perfil-card h-100" id="card-TRABALHO"
+                         th:classappend="${recomendacao != null and recomendacao.perfil.name() == 'TRABALHO'} ? ' selecionado' : ''"
+                         onclick="selecionarPerfil('TRABALHO', this)">
+                        <div class="perfil-emoji">💼</div>
+                        <div class="perfil-label">Trabalho / Escritório</div>
+                        <div class="perfil-desc">Estabilidade e custo-benefício. Componentes eficientes para uso cotidiano.</div>
+                    </div>
+                </div>
+
+                <div style="min-width: 180px; flex: 1;">
+                    <div class="perfil-card h-100" id="card-CRIACAO"
+                         th:classappend="${recomendacao != null and recomendacao.perfil.name() == 'CRIACAO'} ? ' selecionado' : ''"
+                         onclick="selecionarPerfil('CRIACAO', this)">
+                        <div class="perfil-emoji">🎬</div>
+                        <div class="perfil-label">Criação de Conteúdo</div>
+                        <div class="perfil-desc">Edição de vídeo e renderização. Muitos núcleos de CPU e armazenamento rápido.</div>
+                    </div>
+                </div>
+
+                <div style="min-width: 180px; flex: 1;">
+                    <div class="perfil-card h-100" id="card-CIENTIFICO"
+                         th:classappend="${recomendacao != null and recomendacao.perfil.name() == 'CIENTIFICO'} ? ' selecionado' : ''"
+                         onclick="selecionarPerfil('CIENTIFICO', this)">
+                        <div class="perfil-emoji">🔬</div>
+                        <div class="perfil-label">Workstation Científica</div>
+                        <div class="perfil-desc">Machine learning e simulações. CPU e RAM máximas, sem compromisso de custo.</div>
+                    </div>
+                </div>
+
+                <div style="min-width: 180px; flex: 1;">
+                    <div class="perfil-card h-100" id="card-MISTO"
+                         th:classappend="${recomendacao != null and recomendacao.perfil.name() == 'MISTO'} ? ' selecionado' : ''"
+                         onclick="selecionarPerfil('MISTO', this)">
+                        <div class="perfil-emoji">🎯</div>
+                        <div class="perfil-label">Gamer + Trabalho</div>
+                        <div class="perfil-desc">Equilíbrio entre desempenho e produtividade. Melhor custo-benefício geral.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PASSO 2: ORCAMENTO -->
+            <h6 class="fw-bold text-muted mb-2 text-uppercase small">2. Orçamento máximo (opcional)</h6>
+            <div class="row g-2 align-items-center mb-3">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text fw-bold">R$</span>
+                        <input type="text" inputmode="numeric" id="inputOrcamentoVisual"
+                               class="form-control" placeholder="Ex: 5000 (deixe vazio = sem limite)"
+                               th:value="${orcamento != null ? orcamento.intValue() : ''}">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <input type="range" class="form-range" id="rangeOrcamento"
+                           min="0" max="30000" step="500"
+                           th:value="${orcamento != null ? orcamento.intValue() : 0}">
+                    <div class="d-flex justify-content-between align-items-center mt-1">
+                        <span id="labelOrcamento" class="fw-semibold text-primary small">Sem limite</span>
+                        <div class="d-flex gap-2 small text-muted">
+                            <span>R$ 5k</span>
+                            <span>R$ 15k</span>
+                            <span>R$ 30k</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold"
+                            onclick="return prepararSubmit()">
+                        <i class="bi bi-lightning-charge me-1"></i>Filtrar
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </form>
+
+    <!-- RESULTADO DA RECOMENDACAO -->
+    <div th:if="${recomendacao}">
+
+        <!-- BANNER -->
+        <div class="estimativa-box mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-7">
+                    <div class="fw-bold fs-5 mb-1" th:text="${recomendacao.perfil.label}"></div>
+                    <p class="mb-0 opacity-75 small" th:text="${recomendacao.justificativa}"></p>
+                </div>
+                <div class="col-md-5 text-md-end mt-3 mt-md-0">
+                    <div class="small opacity-75">Estimativa da build completa</div>
+                    <div class="fw-bold fs-3" th:text="${recomendacao.totalEstimadoFormatado}"></div>
+                    <div class="small opacity-75">Consumo estimado: <span th:text="${recomendacao.consumoEstimado + 'W'}"></span></div>
+                    <form th:action="@{/recomendar/build-automatica}" method="post" class="d-inline mt-2">
+                        <input type="hidden" name="perfil" th:value="${recomendacao.perfil.name()}">
+                        <input type="hidden" name="orcamento" th:value="${recomendacao.orcamentoMax != null ? recomendacao.orcamentoMax.longValue() : ''}">
+                        <button type="submit" class="btn btn-warning fw-bold mt-1"
+                                onclick="return confirm('Criar build automática com o melhor componente de cada categoria?')">
+                            <i class="bi bi-magic me-2"></i>Criar Build Automática
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABS (Corrigido para usar substituição literal com barras verticais) -->
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <button type="button" class="tab-categoria active" id="tab-todos"
+                    onclick="mostrarTodos(this)">Todas as categorias</button>
+            <button th:each="entry : ${recomendacao.componentesRecomendados}"
+                    type="button" class="tab-categoria"
+                    th:text="${entry.key}"
+                    th:data-cat="${entry.key}"
+                    onclick="filtrarCategoriaData(this)"></button>
+        </div>
+
+        <!-- FORMULARIO DE SALVAR -->
+        <form id="formSalvar" th:action="@{/recomendar/salvar-selecionados}" method="post">
+
+            <div class="mb-3 d-flex gap-2 align-items-center flex-wrap">
+                <div class="input-group" style="max-width:340px">
+                    <span class="input-group-text"><i class="bi bi-pencil"></i></span>
+                    <input type="text" id="nomeBuildInput" class="form-control fw-semibold"
+                           th:placeholder="${'Minha Build ' + recomendacao.perfil.label}"
+                           required>
+                </div>
+                <button type="button" class="btn btn-success fw-bold px-4"
+                        onclick="salvarBuildSelecionada()">
+                    <i class="bi bi-save me-1"></i>Salvar Selecionados
+                </button>
+            </div>
+            <p class="text-muted small mb-3">
+                <i class="bi bi-info-circle me-1"></i>
+                Selecione <strong>UM componente por categoria</strong> clicando na linha. O destacado em verde é o Top Pick recomendado.
+            </p>
+
+            <!-- CATEGORIAS -->
+            <div th:each="entrada : ${recomendacao.componentesRecomendados}"
+                 class="card resultado-card p-4 mb-3 bloco-categoria"
+                 th:data-categoria="${entrada.key}">
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="section-title mb-0" th:text="${entrada.key}"></h6>
+                    <span class="badge bg-secondary" th:text="${#lists.size(entrada.value)} + ' opções'"></span>
+                </div>
+
+                <!-- Componentes (Corrigido classappend, ids e onclicks) -->
+                <div th:each="comp, stat : ${entrada.value}">
+                    <div th:class="${'comp-linha' + (stat.index == 0 ? ' top-pick' : '') + (stat.index >= 3 ? ' d-none extra-' + #strings.replace(entrada.key, ' ', '_') : '')}"
+                         th:data-cat="${#strings.replace(entrada.key, ' ', '_')}"
+                         th:data-cid="${comp.id}"
+                         onclick="selecionarComponenteData(this)">
+                        <div class="d-flex align-items-center gap-3">
+
+                            <!-- Indicador de seleção -->
+                            <div class="flex-shrink-0">
+                                <div class="radio-visual"
+                                     th:id="|radio-${#strings.replace(entrada.key, ' ', '_')}-${comp.id}|"
+                                     th:classappend="${stat.index == 0} ? ' selecionado-radio' : ''"
+                                     style="width:20px; height:20px; border-radius:50%; border:2px solid #dee2e6; background:#fff; display:flex; align-items:center; justify-content:center;">
+                                    <div th:if="${stat.index == 0}"
+                                         style="width:10px; height:10px; border-radius:50%; background:#0d6efd;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Imagem -->
+                            <img th:if="${comp.imagemUrl != null and !comp.imagemUrl.isBlank()}"
+                                 th:src="${comp.imagemUrl}"
+                                 class="comp-img-mini flex-shrink-0"
+                                 th:alt="${comp.nome}"
+                                 onerror="this.style.display='none'">
+                            <i th:if="${comp.imagemUrl == null or comp.imagemUrl.isBlank()}"
+                               class="bi bi-cpu flex-shrink-0"
+                               style="font-size:1.5rem; color:#dee2e6; width:44px; text-align:center"></i>
+
+                            <!-- Infos -->
+                            <div class="flex-fill">
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span th:if="${stat.index == 0}" class="badge-top">★ Top Pick</span>
+                                    <span class="fw-semibold text-dark small"
+                                          th:text="${comp.fabricante.nome + ' ' + comp.nome}"></span>
+                                </div>
+                                <div class="text-muted" style="font-size:0.75rem" th:text="${comp.especificacao}"></div>
+                                <div class="d-flex align-items-center gap-2 mt-1 flex-wrap">
+                                    <span class="text-success fw-bold small" th:text="${comp.precoFormatado}"></span>
+                                    <span class="badge bg-warning text-dark" style="font-size:0.65rem" th:text="${comp.tdpWatts + 'W'}"></span>
+                                    <span th:if="${comp.socket != null and !comp.socket.isBlank()}"
+                                          class="badge bg-info text-dark" style="font-size:0.65rem"
+                                          th:text="${comp.socket}"></span>
+                                    <span th:if="${comp.ddrVersion != null and !comp.ddrVersion.isBlank()}"
+                                          class="badge bg-secondary" style="font-size:0.65rem"
+                                          th:text="${comp.ddrVersion}"></span>
+                                </div>
+                            </div>
+
+                            <!-- Quantidade e links -->
+                            <div class="d-flex flex-column align-items-end gap-1 flex-shrink-0" onclick="event.stopPropagation()">
+                                <input type="number"
+                                       th:id="|qtd-${#strings.replace(entrada.key, ' ', '_')}-${comp.id}|"
+                                       class="form-control form-control-sm text-center"
+                                       style="width:60px" value="1" min="1" max="4">
+                                <div class="d-flex gap-1">
+                                    <a th:if="${comp.linkKabum != null and !comp.linkKabum.isBlank()}"
+                                       th:href="${comp.linkKabum}" target="_blank"
+                                       class="btn btn-outline-warning comprar-link" style="font-size:0.65rem">KaBuM!</a>
+                                    <a th:if="${comp.linkPichau != null and !comp.linkPichau.isBlank()}"
+                                       th:href="${comp.linkPichau}" target="_blank"
+                                       class="btn btn-outline-danger comprar-link" style="font-size:0.65rem">Pichau</a>
+                                    <a th:if="${comp.linkTerabyte != null and !comp.linkTerabyte.isBlank()}"
+                                       th:href="${comp.linkTerabyte}" target="_blank"
+                                       class="btn btn-outline-primary comprar-link" style="font-size:0.65rem">Tera</a>
+                                </div>
+                            </div>
+
+                            <!-- ID e categoria como data attributes para o JS -->
+                            <span th:data-comp-id="${comp.id}"
+                                  th:data-categoria="${#strings.replace(entrada.key, ' ', '_')}"
+                                  style="display:none" class="comp-data"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ver mais (Corrigido onclick do botão expandir) -->
+                <div th:if="${#lists.size(entrada.value) > 3}" class="mt-2">
+                    <button type="button" class="btn btn-link btn-sm p-0 text-muted"
+                            th:data-cat="${#strings.replace(entrada.key, ' ', '_')}"
+                            onclick="toggleExtrasData(this)">
+                        <i class="bi bi-chevron-down me-1"></i>
+                        Ver mais <span th:text="${#lists.size(entrada.value) - 3}"></span> opções
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Botão flutuante -->
+            <div class="position-sticky bottom-0 py-3 bg-white border-top shadow-sm"
+                 style="z-index:10; margin: 0 -12px; padding: 12px 24px !important">
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <input type="text" id="nomeBuildInput2" class="form-control fw-semibold"
+                           style="max-width:320px"
+                           th:placeholder="${'Minha Build ' + recomendacao.perfil.label}">
+                    <button type="button" class="btn btn-success fw-bold px-4 py-2"
+                            onclick="salvarBuildSelecionada()">
+                        <i class="bi bi-save me-2"></i>Salvar Build com Selecionados
+                    </button>
+                    <a href="/" class="btn btn-outline-secondary py-2">Cancelar</a>
+                </div>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // ================================================================
+    // CONTROLE DO PERFIL SELECIONADO
+    // ================================================================
+
+    var selecoesPorCategoria = {};
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var rangeVal = document.getElementById('rangeOrcamento');
+        var inputVal = document.getElementById('inputOrcamentoVisual');
+        if (rangeVal && inputVal) {
+            var valorInicial = parseInt(inputVal.value) || 0;
+            atualizarLabelOrcamento(valorInicial);
+            rangeVal.value = Math.min(valorInicial, 30000);
+        }
+
+        document.querySelectorAll('.comp-linha.top-pick').forEach(function(linha) {
+            var data = linha.querySelector('.comp-data');
+            if (data) {
+                var cat = data.getAttribute('data-categoria');
+                var id  = data.getAttribute('data-comp-id');
+                selecoesPorCategoria[cat] = { id: id, qtdId: 'qtd-' + cat + '-' + id };
+                marcarLinhaSelecionada(cat, linha);
+            }
+        });
+    });
+
+    function selecionarPerfil(perfil, card) {
+        document.querySelectorAll('.perfil-card').forEach(function(c) {
+            c.classList.remove('selecionado');
+        });
+        card.classList.add('selecionado');
+        document.getElementById('perfilSelecionado').value = perfil;
+
+        // Lê o valor do input visual E do range, usa o maior disponível
+        var valInput = parseInt(document.getElementById('inputOrcamentoVisual').value) || 0;
+        var valRange = parseInt(document.getElementById('rangeOrcamento').value) || 0;
+        var orcamento = valInput > 0 ? valInput : valRange;
+        document.getElementById('orcamentoHidden').value = orcamento > 0 ? String(orcamento) : '';
+
+        document.getElementById('formPerfil').submit();
+    }
+
+    var range = document.getElementById('rangeOrcamento');
+    var input = document.getElementById('inputOrcamentoVisual');
+
+    function atualizarLabelOrcamento(valor) {
+        var label = document.getElementById('labelOrcamento');
+        if (label) {
+            label.textContent = valor > 0
+                ? 'R$ ' + valor.toLocaleString('pt-BR')
+                : 'Sem limite';
+        }
+    }
+
+    if (range && input) {
+        range.addEventListener('input', function() {
+            var val = parseInt(this.value) || 0;
+            input.value = val > 0 ? val : '';
+            atualizarLabelOrcamento(val);
+        });
+
+        input.addEventListener('input', function() {
+            var val = parseInt(this.value.replace(/\D/g, '')) || 0;
+            range.value = Math.min(val, 30000);
+            atualizarLabelOrcamento(val);
+        });
+    }
+
+    // ── Preparar submit do formulário de perfil ─────────────────────
+    function prepararSubmit() {
+        var perfil = document.getElementById('perfilSelecionado').value;
+        if (!perfil) {
+            alert('Clique em um perfil antes de filtrar.');
+            return false;
+        }
+        var orcamento = parseInt(document.getElementById('inputOrcamentoVisual').value) || 0;
+        document.getElementById('orcamentoHidden').value = orcamento > 0 ? String(orcamento) : '';
+        return true;
+    }
+
+    // ================================================================
+    // CONTROLE DOS COMPONENTES POR CATEGORIA
+    // ================================================================
+
+    function selecionarComponente(categoria, compId, linha) {
+        document.querySelectorAll('.bloco-categoria[data-categoria="' + categoria.replace(/_/g,' ') + '"] .comp-linha').forEach(function(l) {
+            l.classList.remove('selecionado-linha');
+            var radio = l.querySelector('.radio-visual');
+            if (radio) {
+                radio.style.borderColor = '#dee2e6';
+                var dot = radio.querySelector('div');
+                if (dot) dot.style.display = 'none';
+            }
+        });
+
+        marcarLinhaSelecionada(categoria, linha);
+
+        selecoesPorCategoria[categoria] = {
+            id: compId,
+            qtdId: 'qtd-' + categoria + '-' + compId
+        };
+    }
+
+    function marcarLinhaSelecionada(categoria, inlineLinha) {
+        inlineLinha.classList.add('selecionado-linha');
+        var radio = inlineLinha.querySelector('.radio-visual');
+        if (radio) {
+            radio.style.borderColor = '#0d6efd';
+            var dot = radio.querySelector('div');
+            if (dot) {
+                dot.style.display = 'flex';
+            } else {
+                var novoDot = document.createElement('div');
+                novoDot.style.cssText = 'width:10px; height:10px; border-radius:50%; background:#0d6efd;';
+                radio.appendChild(novoDot);
+            }
+        }
+    }
+
+    function salvarBuildSelecionada() {
+        var nome = document.getElementById('nomeBuildInput').value.trim() ||
+            document.getElementById('nomeBuildInput2').value.trim();
+
+        if (!nome) {
+            alert('Digite um nome para a build antes de salvar.');
+            document.getElementById('nomeBuildInput').focus();
+            return;
+        }
+
+        if (Object.keys(selecoesPorCategoria).length === 0) {
+            alert('Selecione pelo menos um componente.');
+            return;
+        }
+
+        var form = document.createElement('form');
+        form.method = 'post';
+        form.action = document.getElementById('formSalvar').action;
+
+// Adiciona token CSRF obrigatório
+        var csrfToken = document.querySelector('meta[name="_csrf"]');
+        var csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_csrf';
+        csrfInput.value = csrfToken ? csrfToken.getAttribute('content') : '';
+        form.appendChild(csrfInput);
+
+        var campoNome = document.createElement('input');
+        campoNome.type = 'hidden';
+        campoNome.name = 'nomeBuild';
+        campoNome.value = nome;
+        form.appendChild(campoNome);
+
+        for (var cat in selecoesPorCategoria) {
+            var sel = selecoesPorCategoria[cat];
+
+            var campoId = document.createElement('input');
+            campoId.type = 'hidden';
+            campoId.name = 'componenteId';
+            campoId.value = sel.id;
+            form.appendChild(campoId);
+
+            var qtdEl = document.getElementById(sel.qtdId);
+            var qtdVal = qtdEl ? (parseInt(qtdEl.value) || 1) : 1;
+
+            var campoQtd = document.createElement('input');
+            campoQtd.type = 'hidden';
+            campoQtd.name = 'quantidade';
+            campoQtd.value = qtdVal;
+            form.appendChild(campoQtd);
+        }
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    // ================================================================
+    // FILTROS DE CATEGORIA E EXPANDIR
+    // ================================================================
+
+    function filtrarCategoria(btn, categoria) {
+        document.querySelectorAll('.tab-categoria').forEach(function(t) { t.classList.remove('active'); });
+        btn.classList.add('active');
+        document.querySelectorAll('.bloco-categoria').forEach(function(b) {
+            b.style.display = b.getAttribute('data-categoria') === categoria ? '' : 'none';
+        });
+    }
+
+    function mostrarTodos(btn) {
+        document.querySelectorAll('.tab-categoria').forEach(function(t) { t.classList.remove('active'); });
+        btn.classList.add('active');
+        document.querySelectorAll('.bloco-categoria').forEach(function(b) { b.style.display = ''; });
+    }
+
+    // Wrappers para data-* (Thymeleaf 3.1 bloqueia strings em th:onclick)
+    function filtrarCategoriaData(btn) {
+        filtrarCategoria(btn, btn.getAttribute('data-cat'));
+    }
+    function selecionarComponenteData(el) {
+        selecionarComponente(el.getAttribute('data-cat'), parseInt(el.getAttribute('data-cid')), el);
+    }
+    function toggleExtrasData(btn) {
+        toggleExtras(btn, btn.getAttribute('data-cat'));
+    }
+
+    function toggleExtras(btn, categoriaId) {
+        var extras = document.querySelectorAll('.extra-' + categoriaId);
+        if (extras.length === 0) return;
+        var visivel = !extras[0].classList.contains('d-none');
+        extras.forEach(function(el) { el.classList.toggle('d-none', visivel); });
+        var icon = btn.querySelector('i');
+        if (icon) icon.className = visivel ? 'bi bi-chevron-down me-1' : 'bi bi-chevron-up me-1';
+        btn.innerHTML = (visivel ? '<i class="bi bi-chevron-down me-1"></i>Ver mais ' : '<i class="bi bi-chevron-up me-1"></i>Ver menos ')
+            + (visivel ? extras.length : '') + (visivel ? ' opções' : '');
+    }
+</script>
+</body>
+</html>

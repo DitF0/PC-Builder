@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - PC Builder ESEG</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --cyan:   #00f5ff;
+            --blue:   #0066ff;
+            --purple: #7c3aed;
+            --dark:   #050814;
+            --card:   rgba(8, 15, 35, 0.85);
+            --border: rgba(0, 245, 255, 0.15);
+            --text:   #e2e8f0;
+            --muted:  #64748b;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--dark);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* ── Background animado ── */
+        .bg-mesh {
+            position: fixed;
+            inset: 0;
+            background:
+                    radial-gradient(ellipse 80% 50% at 20% 40%, rgba(0,102,255,0.12) 0%, transparent 60%),
+                    radial-gradient(ellipse 60% 40% at 80% 70%, rgba(124,58,237,0.10) 0%, transparent 60%),
+                    radial-gradient(ellipse 40% 30% at 50% 10%, rgba(0,245,255,0.08) 0%, transparent 50%);
+            z-index: 0;
+        }
+
+        .grid-lines {
+            position: fixed;
+            inset: 0;
+            background-image:
+                    linear-gradient(rgba(0,245,255,0.03) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0,245,255,0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            z-index: 0;
+            animation: gridScroll 20s linear infinite;
+        }
+
+        @keyframes gridScroll {
+            0%   { background-position: 0 0; }
+            100% { background-position: 60px 60px; }
+        }
+
+        /* ── Partículas ── */
+        .particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: var(--cyan);
+            border-radius: 50%;
+            animation: float linear infinite;
+            opacity: 0;
+        }
+
+        @keyframes float {
+            0%   { transform: translateY(100vh) translateX(0); opacity: 0; }
+            10%  { opacity: 1; }
+            90%  { opacity: 1; }
+            100% { transform: translateY(-10vh) translateX(var(--drift)); opacity: 0; }
+        }
+
+        /* ── Linha decorativa superior ── */
+        .scanline {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--cyan), var(--blue), var(--purple), transparent);
+            animation: scanPulse 3s ease-in-out infinite;
+            z-index: 10;
+        }
+
+        @keyframes scanPulse {
+            0%, 100% { opacity: 0.4; }
+            50%       { opacity: 1; }
+        }
+
+        /* ── Layout ── */
+        .page {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            gap: 4rem;
+            padding: 2rem;
+            width: 100%;
+            max-width: 960px;
+        }
+
+        /* ── Lado esquerdo — branding ── */
+        .brand-side {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            animation: slideInLeft 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-40px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+
+        .brand-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--blue), var(--cyan));
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            box-shadow: 0 0 30px rgba(0,245,255,0.3), 0 0 60px rgba(0,102,255,0.2);
+            animation: iconGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes iconGlow {
+            0%, 100% { box-shadow: 0 0 30px rgba(0,245,255,0.3), 0 0 60px rgba(0,102,255,0.2); }
+            50%       { box-shadow: 0 0 50px rgba(0,245,255,0.5), 0 0 100px rgba(0,102,255,0.3); }
+        }
+
+        .brand-title {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 700;
+            line-height: 1;
+            color: #fff;
+            letter-spacing: -1px;
+        }
+
+        .brand-title span {
+            background: linear-gradient(90deg, var(--cyan), var(--blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .brand-sub {
+            font-size: 0.95rem;
+            color: var(--muted);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+
+        .brand-features {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+
+        .feature-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--cyan);
+            box-shadow: 0 0 8px var(--cyan);
+            flex-shrink: 0;
+        }
+
+        /* ── Card de login ── */
+        .login-card {
+            width: 380px;
+            flex-shrink: 0;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2.5rem;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow:
+                    0 0 0 1px rgba(0,245,255,0.05),
+                    0 20px 60px rgba(0,0,0,0.5),
+                    inset 0 1px 0 rgba(255,255,255,0.05);
+            animation: slideInRight 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+            position: relative;
+            overflow: visible;
+        }
+
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--cyan), var(--blue), transparent);
+            opacity: 0.8;
+        }
+
+        .login-card::after {
+            content: '';
+            position: absolute;
+            bottom: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 50% 100%, rgba(0,102,255,0.05) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(40px) scale(0.97); }
+            to   { opacity: 1; transform: translateX(0) scale(1); }
+        }
+
+        .card-header {
+            margin-bottom: 2rem;
+        }
+
+        .card-title {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 0.5px;
+        }
+
+        .card-subtitle {
+            color: var(--muted);
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+
+        /* ── Alertas ── */
+        .alert-error {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            color: #fca5a5;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .alert-success {
+            background: rgba(16,185,129,0.1);
+            border: 1px solid rgba(16,185,129,0.3);
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            color: #6ee7b7;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* ── Campos ── */
+        .field { margin-bottom: 1.25rem; }
+
+        .field label {
+            display: block;
+            color: #94a3b8;
+            font-size: 0.82rem;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .field input {
+            width: 100%;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            color: #e2e8f0;
+            font-size: 0.95rem;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .field input::placeholder { color: #475569; }
+
+        .field input:focus {
+            border-color: rgba(0,245,255,0.4);
+            background: rgba(0,245,255,0.04);
+            box-shadow: 0 0 0 3px rgba(0,245,255,0.08);
+        }
+
+        /* ── Botão ── */
+        .btn-login {
+            width: 100%;
+            padding: 0.85rem;
+            background: linear-gradient(135deg, var(--blue), #0052cc);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(0,245,255,0.15), transparent);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 25px rgba(0,102,255,0.4), 0 0 0 1px rgba(0,245,255,0.2);
+        }
+
+        .btn-login:hover::before { opacity: 1; }
+        .btn-login:active { transform: translateY(0); }
+
+        /* ── Rodapé ── */
+        .card-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: var(--muted);
+            font-size: 0.87rem;
+        }
+
+        .card-footer a {
+            color: var(--cyan);
+            text-decoration: none;
+            font-weight: 500;
+            transition: opacity 0.15s;
+        }
+
+        .card-footer a:hover { opacity: 0.75; }
+
+        /* ── Responsivo ── */
+        @media (max-width: 700px) {
+            .brand-side { display: none; }
+            .page { justify-content: center; }
+            .login-card { width: 100%; max-width: 400px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="scanline"></div>
+<div class="bg-mesh"></div>
+<div class="grid-lines"></div>
+<div class="particles" id="particles"></div>
+
+<div class="page">
+
+    <!-- Lado esquerdo — branding -->
+    <div class="brand-side">
+        <div class="brand-icon">⚡</div>
+        <div>
+            <div class="brand-title">PC<span>Builder</span></div>
+            <div class="brand-title" style="font-size:1.4rem; color:#64748b; -webkit-text-fill-color:#64748b;">ESEG</div>
+        </div>
+        <div class="brand-sub">Programação Web — 1º Sem/2026</div>
+        <div class="brand-features">
+            <div class="feature-item">
+                <div class="feature-dot"></div>
+                274 componentes reais do mercado BR
+            </div>
+            <div class="feature-item">
+                <div class="feature-dot" style="background:#7c3aed;box-shadow:0 0 8px #7c3aed"></div>
+                Recomendador por perfil inteligente
+            </div>
+            <div class="feature-item">
+                <div class="feature-dot" style="background:#0066ff;box-shadow:0 0 8px #0066ff"></div>
+                Validação de compatibilidade em tempo real
+            </div>
+            <div class="feature-item">
+                <div class="feature-dot" style="background:#10b981;box-shadow:0 0 8px #10b981"></div>
+                5 perfis: Gamer, Trabalho, Criação e mais
+            </div>
+        </div>
+    </div>
+
+    <!-- Card de login -->
+    <div class="login-card">
+        <div class="card-header">
+            <div class="card-title">Entrar na plataforma</div>
+            <div class="card-subtitle">Monte o PC dos seus sonhos</div>
+        </div>
+
+        <div th:if="${param.error}" class="alert-error">
+            <span>⚠</span> E-mail ou senha inválidos. Tente novamente.
+        </div>
+        <div th:if="${param.logout}" class="alert-success">
+            <span>✓</span> Você foi desconectado com sucesso.
+        </div>
+
+        <form th:action="@{/login}" method="post">
+            <div class="field">
+                <label for="username">E-mail</label>
+                <input type="email" id="username" name="username"
+                       placeholder="seu@email.com" required autofocus>
+            </div>
+            <div class="field">
+                <label for="password">Senha</label>
+                <input type="password" id="password" name="password"
+                       placeholder="••••••" required>
+            </div>
+            <button type="submit" class="btn-login">Entrar →</button>
+        </form>
+
+        <div class="card-footer">
+            Não tem conta?
+            <a href="/registro">Criar conta grátis</a>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // Partículas flutuantes
+    const container = document.getElementById('particles');
+    const count = 35;
+    for (let i = 0; i < count; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        const size = Math.random() * 3 + 1;
+        const x = Math.random() * 100;
+        const duration = Math.random() * 15 + 10;
+        const delay = Math.random() * 15;
+        const drift = (Math.random() - 0.5) * 200;
+        const colors = ['#00f5ff', '#0066ff', '#7c3aed', '#10b981'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        p.style.cssText = `
+            left: ${x}%;
+            width: ${size}px;
+            height: ${size}px;
+            background: ${color};
+            box-shadow: 0 0 ${size * 3}px ${color};
+            animation-duration: ${duration}s;
+            animation-delay: -${delay}s;
+            --drift: ${drift}px;
+        `;
+        container.appendChild(p);
+    }
+</script>
+</body>
+</html>
