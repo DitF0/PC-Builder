@@ -109,7 +109,7 @@ public class ConfiguracaoServiceTest {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                 () -> configuracaoService.salvarBuild(build));
 
-        assertTrue(ex.getMessage().contains("não suporta"));
+        assertTrue(ex.getMessage().contains("Fonte insuficiente"));
         verify(configuracaoRepository, never()).save(any());
     }
 
